@@ -7,8 +7,8 @@ const querystring = require('querystring');
 const url = process.argv[2];
 const username = process.argv[3];
 const listFilePath = process.argv[4];
-const chunkToWait = process.argv[5] || 4;
-const restTime = process.argv[6] || 1000;
+const chunkToWait = +(process.argv[5] || 4);
+const restTime = +(process.argv[6] || 1000);
 
 function nextLine(text, prev) {
   let line = prev;
