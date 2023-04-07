@@ -84,7 +84,7 @@ function start() {
         x++;
 
         if (x % chunkToWait == 0) {
-          const waitTill = new Date(new Date().getTime() + 1000);
+          const waitTill = new Date(new Date().getTime() + restTime);
           while(waitTill > new Date()){}
         }
 
